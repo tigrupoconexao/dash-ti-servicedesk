@@ -1,1 +1,29 @@
+.header{
+display:flex;
+justify-content:center;
+align-items:center;
+background:#020617;
+padding:20px;
+}
 
+.logo-area{
+display:flex;
+align-items:center;
+gap:20px;
+}
+
+.logo{
+height:60px;
+filter:brightness(1.2);
+}
+
+.title h1{
+margin:0;
+font-size:24px;
+}
+
+.title p{
+margin:0;
+font-size:14px;
+opacity:0.7;
+}
