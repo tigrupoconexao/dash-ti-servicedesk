@@ -1,6 +1,4 @@
-let rawData = []
-
-let charts = []
+let rawData=[]
 
 Papa.parse("./data/issues.csv",{
 
@@ -9,126 +7,120 @@ header:true,
 
 complete:function(results){
 
-rawData = results.data.filter(r => r.Criado)
+rawData=results.data.filter(r=>r.Criado)
+
+prepareData()
+
+}
+
+})
+
+function prepareData(){
 
 rawData.forEach(d=>{
-d.Criado = new Date(d.Criado)
-})
 
-initFilters()
+d.criado=new Date(d.Criado)
 
-renderDashboard(rawData)
-
-},
-
-error:function(err){
-
-console.error("Erro ao carregar CSV:",err)
-
-}
+if(d.Atualizado)
+d.atualizado=new Date(d.Atualizado)
 
 })
 
-function initFilters(){
-
-createFilter("statusFilter","Status")
-createFilter("tipoFilter","Tipo de item")
-createFilter("dominioFilter","Campo personalizado (Domínio de TI - Atuação)")
+renderDashboard()
 
 }
 
-function createFilter(id,column){
+function renderDashboard(){
 
-let select=document.getElementById(id)
+let total=rawData.length
 
-let values=[...new Set(rawData.map(d=>d[column]))]
+let resolvidos=rawData.filter(d=>
+d.Status==="Concluído" ||
+d.Status==="Resolvido"
+)
 
-select.innerHTML="<option value=''>Todos</option>"
+let backlog=total-resolvidos.length
 
-values.forEach(v=>{
+document.getElementById("totalChamados").innerText=total
+document.getElementById("backlog").innerText=backlog
 
-let op=document.createElement("option")
-op.value=v
-op.text=v
-select.appendChild(op)
+calcularMTTR(resolvidos)
+
+calcularSLA(resolvidos)
+
+statusChart()
+
+prioridadeChart()
+
+mesChart()
+
+rankingTecnicos()
+
+heatmapSemanal()
+
+heatmapMensal()
+
+}
+
+function calcularMTTR(data){
+
+let horas=0
+
+data.forEach(d=>{
+
+if(d.atualizado){
+
+let diff=(d.atualizado-d.criado)/3600000
+
+horas+=diff
+
+}
 
 })
 
+let mttr=(horas/data.length).toFixed(1)
+
+document.getElementById("mttr").innerText=mttr+"h"
+
 }
 
-function applyFilters(){
+function calcularSLA(data){
 
-let status=document.getElementById("statusFilter").value
-let tipo=document.getElementById("tipoFilter").value
-let dominio=document.getElementById("dominioFilter").value
+let dentroSLA=0
 
-let inicio=document.getElementById("dataInicio").value
-let fim=document.getElementById("dataFim").value
+data.forEach(d=>{
 
-let data=rawData.filter(d=>{
+let diff=(d.atualizado-d.criado)/3600000
 
-if(status && d.Status!==status) return false
-if(tipo && d["Tipo de item"]!==tipo) return false
-if(dominio && d["Campo personalizado (Domínio de TI - Atuação)"]!==dominio) return false
-
-if(inicio && new Date(d.Criado)<new Date(inicio)) return false
-if(fim && new Date(d.Criado)>new Date(fim)) return false
-
-return true
+if(diff<=48) dentroSLA++
 
 })
 
-renderDashboard(data)
+let sla=((dentroSLA/data.length)*100).toFixed(1)
+
+document.getElementById("sla").innerText=sla+"%"
 
 }
 
-function renderDashboard(data){
-
-charts.forEach(c=>c.destroy())
-charts=[]
-
-let total=data.length
-
-let resolvidos=data.filter(d=>["Concluído","Resolvido"].includes(d.Status)).length
-
-let abertos=total-resolvidos
-
-let taxa= total ? ((resolvidos/total)*100).toFixed(1) : 0
-
-document.getElementById("kpiTotal").innerText=total
-document.getElementById("kpiResolvidos").innerText=resolvidos
-document.getElementById("kpiAbertos").innerText=abertos
-document.getElementById("kpiTaxa").innerText=taxa+"%"
-
-createBarChart("statusChart",groupCount(data,"Status"))
-createBarChart("prioridadeChart",groupCount(data,"Prioridade"))
-createBarChart("tipoChart",groupCount(data,"Tipo de item"))
-createBarChart("dominioChart",groupCount(data,"Campo personalizado (Domínio de TI - Atuação)"))
-
-createMesChart(data)
-
-createHeatmapSemanal(data)
-
-createHeatmapMensal(data)
-
-}
-
-function groupCount(data,column){
+function group(column){
 
 let map={}
 
-data.forEach(d=>{
-let k=d[column] || "Não informado"
+rawData.forEach(d=>{
+
+let k=d[column]||"N/A"
+
 map[k]=(map[k]||0)+1
+
 })
 
 return map
 
 }
 
-function createBarChart(canvas,data){
+function barChart(canvas,data){
 
-let chart = new Chart(document.getElementById(canvas),{
+new Chart(document.getElementById(canvas),{
 
 type:"bar",
 
@@ -144,44 +136,55 @@ data:Object.values(data)
 
 },
 
-options:{
-plugins:{
-legend:{display:false}
-}
-}
+options:{plugins:{legend:{display:false}}}
 
 })
 
-charts.push(chart)
+}
+
+function statusChart(){
+
+barChart("statusChart",group("Status"))
 
 }
 
-function createMesChart(data){
+function prioridadeChart(){
+
+barChart("prioridadeChart",group("Prioridade"))
+
+}
+
+function rankingTecnicos(){
+
+barChart("tecnicosChart",group("Responsável"))
+
+}
+
+function mesChart(){
 
 let map={}
 
-data.forEach(d=>{
+rawData.forEach(d=>{
 
-let mes=d.Criado.toISOString().slice(0,7)
+let m=d.criado.toISOString().slice(0,7)
 
-map[mes]=(map[mes]||0)+1
+map[m]=(map[m]||0)+1
 
 })
 
-createBarChart("mesChart",map)
+barChart("mesChart",map)
 
 }
 
-function createHeatmapSemanal(data){
+function heatmapSemanal(){
 
 let matrix=[[],[],[],[],[]]
 
-data.forEach(d=>{
+rawData.forEach(d=>{
 
-let week=Math.ceil(d.Criado.getDate()/7)-1
-let day=d.Criado.getDay()
+let week=Math.ceil(d.criado.getDate()/7)-1
 
-if(!matrix[week]) matrix[week]=[]
+let day=d.criado.getDay()
 
 matrix[week][day]=(matrix[week][day]||0)+1
 
@@ -196,23 +199,21 @@ type:"heatmap"
 
 }
 
-function createHeatmapMensal(data){
+function heatmapMensal(){
 
 let map={}
 
-data.forEach(d=>{
+rawData.forEach(d=>{
 
-let m=d.Criado.getMonth()
+let m=d.criado.getMonth()
 
 map[m]=(map[m]||0)+1
 
 })
 
-let z=[Object.values(map)]
-
 Plotly.newPlot("heatmapMensal",[{
 
-z:z,
+z:[Object.values(map)],
 type:"heatmap"
 
 }])
