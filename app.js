@@ -1,14 +1,15 @@
 let rawData = []
 
-Papa.parse("data/issues.csv",{
+let charts = []
+
+Papa.parse("./data/issues.csv",{
 
 download:true,
 header:true,
-delimiter:";",
 
 complete:function(results){
 
-rawData = results.data
+rawData = results.data.filter(r => r.Criado)
 
 rawData.forEach(d=>{
 d.Criado = new Date(d.Criado)
@@ -17,6 +18,12 @@ d.Criado = new Date(d.Criado)
 initFilters()
 
 renderDashboard(rawData)
+
+},
+
+error:function(err){
+
+console.error("Erro ao carregar CSV:",err)
 
 }
 
@@ -77,26 +84,26 @@ renderDashboard(data)
 
 function renderDashboard(data){
 
+charts.forEach(c=>c.destroy())
+charts=[]
+
 let total=data.length
 
 let resolvidos=data.filter(d=>["Concluído","Resolvido"].includes(d.Status)).length
 
 let abertos=total-resolvidos
 
-let taxa=((resolvidos/total)*100).toFixed(1)
+let taxa= total ? ((resolvidos/total)*100).toFixed(1) : 0
 
 document.getElementById("kpiTotal").innerText=total
 document.getElementById("kpiResolvidos").innerText=resolvidos
 document.getElementById("kpiAbertos").innerText=abertos
 document.getElementById("kpiTaxa").innerText=taxa+"%"
 
-createBarChart("statusChart",groupCount(data,"Status"),"Status")
-
-createBarChart("prioridadeChart",groupCount(data,"Prioridade"),"Prioridade")
-
-createBarChart("tipoChart",groupCount(data,"Tipo de item"),"Tipo")
-
-createBarChart("dominioChart",groupCount(data,"Campo personalizado (Domínio de TI - Atuação)"),"Domínio TI")
+createBarChart("statusChart",groupCount(data,"Status"))
+createBarChart("prioridadeChart",groupCount(data,"Prioridade"))
+createBarChart("tipoChart",groupCount(data,"Tipo de item"))
+createBarChart("dominioChart",groupCount(data,"Campo personalizado (Domínio de TI - Atuação)"))
 
 createMesChart(data)
 
@@ -111,20 +118,17 @@ function groupCount(data,column){
 let map={}
 
 data.forEach(d=>{
-
-let k=d[column]
-
+let k=d[column] || "Não informado"
 map[k]=(map[k]||0)+1
-
 })
 
 return map
 
 }
 
-function createBarChart(canvas,data,label){
+function createBarChart(canvas,data){
 
-new Chart(document.getElementById(canvas),{
+let chart = new Chart(document.getElementById(canvas),{
 
 type:"bar",
 
@@ -134,15 +138,21 @@ labels:Object.keys(data),
 
 datasets:[{
 
-label:label,
-
 data:Object.values(data)
 
 }]
 
+},
+
+options:{
+plugins:{
+legend:{display:false}
+}
 }
 
 })
+
+charts.push(chart)
 
 }
 
@@ -158,7 +168,7 @@ map[mes]=(map[mes]||0)+1
 
 })
 
-createBarChart("mesChart",map,"Chamados por mês")
+createBarChart("mesChart",map)
 
 }
 
@@ -168,10 +178,12 @@ let matrix=[[],[],[],[],[]]
 
 data.forEach(d=>{
 
-let w=Math.ceil(d.Criado.getDate()/7)-1
+let week=Math.ceil(d.Criado.getDate()/7)-1
 let day=d.Criado.getDay()
 
-matrix[w][day]=(matrix[w][day]||0)+1
+if(!matrix[week]) matrix[week]=[]
+
+matrix[week][day]=(matrix[week][day]||0)+1
 
 })
 
