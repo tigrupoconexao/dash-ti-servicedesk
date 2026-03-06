@@ -35,6 +35,10 @@ border-radius:6px;
 
 }
 
+button{
+cursor:pointer;
+}
+
 .kpis{
 
 display:grid;
