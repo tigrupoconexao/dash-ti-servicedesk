@@ -1,131 +1,290 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grafana TI | Grupo Conexão</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0c0e; /* Grafana Background */
+            color: #d8d9da;
+        }
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+        .grafana-card {
+            background-color: #181b1f;
+            border: 1px solid #2c3235;
+            border-top: 3px solid #3274d9; /* Accent line */
+            border-radius: 2px;
+            transition: all 0.2s ease;
+        }
 
-<title>Dashboard NOC Service Desk</title>
+        .grafana-card:hover {
+            border-color: #555;
+        }
 
-<link rel="stylesheet" href="style.css">
+        .stat-value {
+            color: #56a64b; /* Grafana Success Green */
+            font-size: 2.5rem;
+            line-height: 1;
+        }
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+        .filter-select {
+            background-color: #0b0c0e;
+            border: 1px solid #2c3235;
+            color: #d8d9da;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            border-radius: 2px;
+            outline: none;
+        }
 
+        .filter-select:focus {
+            border-color: #3274d9;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0b0c0e; }
+        ::-webkit-scrollbar-thumb { background: #2c3235; border-radius: 4px; }
+    </style>
 </head>
+<body class="p-4">
 
+    <header class="flex flex-col md:flex-row justify-between items-center mb-6 border-b border-gray-800 pb-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-orange-500 p-1 rounded text-black font-bold">G</div>
+            <h1 class="text-xl font-semibold tracking-tight text-white">Dashboard Jira / TI - Grupo Conexão</h1>
+        </div>
+        
+        <div class="flex items-center gap-4 mt-4 md:mt-0">
+            <div class="flex gap-2">
+                <i data-lucide="filter" class="w-4 h-4 text-gray-500 mt-1"></i>
+                <select id="filter-status" class="filter-select"><option value="Todos">Status</option></select>
+                <select id="filter-dominio" class="filter-select"><option value="Todos">Domínio</option></select>
+                <select id="filter-tipo" class="filter-select"><option value="Todos">Tipo</option></select>
+            </div>
+            <div class="text-xs text-gray-500 border-l border-gray-700 pl-4 flex items-center gap-1">
+                <i data-lucide="refresh-cw" class="w-3 h-3"></i> Auto-refresh ON
+            </div>
+        </div>
+    </header>
 
-<body>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="grafana-card p-4">
+            <p class="text-xs font-semibold text-blue-400 uppercase mb-2">Total Issues</p>
+            <div id="kpi-total" class="stat-value text-white">-</div>
+        </div>
+        <div class="grafana-card p-4" style="border-top-color: #56a64b;">
+            <p class="text-xs font-semibold text-green-400 uppercase mb-2">Resolved/Done</p>
+            <div id="kpi-concluidos" class="stat-value">-</div>
+        </div>
+        <div class="grafana-card p-4" style="border-top-color: #e54919;">
+            <p class="text-xs font-semibold text-orange-400 uppercase mb-2">Open Issues</p>
+            <div id="kpi-aberto" class="stat-value text-orange-500">-</div>
+        </div>
+        <div class="grafana-card p-4" style="border-top-color: #a352cc;">
+            <p class="text-xs font-semibold text-purple-400 uppercase mb-2">Eng. Team Load</p>
+            <div id="kpi-dominios" class="stat-value text-purple-400">-</div>
+        </div>
+    </div>
 
-<header>
+    <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 lg:col-span-6 grafana-card p-2">
+            <div class="text-xs font-bold text-gray-400 mb-2 px-2 border-b border-gray-800 pb-1 flex justify-between">
+                <span>WEEKLY LOAD DENSITY</span>
+                <i data-lucide="info" class="w-3 h-3"></i>
+            </div>
+            <div id="chart-heatmap-week"></div>
+        </div>
+        <div class="col-span-12 lg:col-span-6 grafana-card p-2">
+            <div class="text-xs font-bold text-gray-400 mb-2 px-2 border-b border-gray-800 pb-1 flex justify-between">
+                <span>MONTHLY ACTIVITY LOG</span>
+                <i data-lucide="calendar" class="w-3 h-3"></i>
+            </div>
+            <div id="chart-heatmap-month"></div>
+        </div>
 
-<img src="assets/logo.png" class="logo">
+        <div class="col-span-12 md:col-span-4 grafana-card p-2">
+            <div class="text-xs font-bold text-gray-400 mb-2 px-2 border-b border-gray-800 pb-1">BY DOMAIN (TI)</div>
+            <div id="chart-dominio-bars"></div>
+        </div>
+        <div class="col-span-12 md:col-span-4 grafana-card p-2">
+            <div class="text-xs font-bold text-gray-400 mb-2 px-2 border-b border-gray-800 pb-1">PRIORITY DISTRIBUTION</div>
+            <div id="chart-prioridade-bars"></div>
+        </div>
+        <div class="col-span-12 md:col-span-4 grafana-card p-2">
+            <div class="text-xs font-bold text-gray-400 mb-2 px-2 border-b border-gray-800 pb-1">ISSUE TYPES</div>
+            <div id="chart-tipo-bars"></div>
+        </div>
 
-<div>
+        <div class="col-span-12 grafana-card p-2">
+            <div class="text-xs font-bold text-gray-400 mb-2 px-2 border-b border-gray-800 pb-1">CREATION OVER TIME (MONTHLY)</div>
+            <div id="chart-monthly-bars"></div>
+        </div>
+    </div>
 
-<h1>Service Desk Dashboard</h1>
-<p>Grupo Conexão</p>
+    <script>
+        let rawData = [];
+        let charts = {};
+        
+        // Configurações Globais do ApexCharts para Tema Escuro (Grafana Style)
+        const commonOptions = {
+            theme: { mode: 'dark' },
+            chart: { background: 'transparent', toolbar: { show: false } },
+            grid: { borderColor: '#2c3235', strokeDashArray: 2 },
+            legend: { labels: { colors: '#d8d9da' } }
+        };
 
-</div>
+        lucide.createIcons();
 
-</header>
+        // LINK DO GOOGLE DRIVE (FORMATO EXPORT CSV)
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/1Jeu5qwlBJtmE0PKAJiegfy8lUGlkTOYU/export?format=csv';
 
+        Papa.parse(CSV_URL, {
+            download: true,
+            header: true,
+            delimiter: ",", // Google Sheets exportado usa vírgula normalmente
+            skipEmptyLines: true,
+            complete: function(results) {
+                rawData = results.data;
+                populateFilters();
+                updateDashboard();
+            }
+        });
 
+        function populateFilters() {
+            const getUnique = (field) => [...new Set(rawData.map(i => i[field]).filter(Boolean))];
+            
+            const fill = (id, list) => {
+                const el = document.getElementById(id);
+                list.forEach(item => el.innerHTML += `<option value="${item}">${item}</option>`);
+            }
+            fill('filter-status', getUnique('Status'));
+            fill('filter-dominio', getUnique('Campo personalizado (Domínio de TI - Atuação)'));
+            fill('filter-tipo', getUnique('Tipo de item'));
 
-<!-- KPIs -->
+            document.querySelectorAll('select').forEach(s => s.addEventListener('change', updateDashboard));
+        }
 
-<section class="kpis">
+        function updateDashboard() {
+            const fStatus = document.getElementById('filter-status').value;
+            const fDominio = document.getElementById('filter-dominio').value;
+            const fTipo = document.getElementById('filter-tipo').value;
 
-<div class="card">
-<h3>Total Chamados</h3>
-<p id="totalChamados">0</p>
-</div>
+            const filtered = rawData.filter(i => {
+                return (fStatus === 'Todos' || i.Status === fStatus) &&
+                       (fDominio === 'Todos' || i['Campo personalizado (Domínio de TI - Atuação)'] === fDominio) &&
+                       (fTipo === 'Todos' || i['Tipo de item'] === fTipo);
+            });
 
-<div class="card">
-<h3>Backlog</h3>
-<p id="backlog">0</p>
-</div>
+            renderKPIs(filtered);
+            renderCharts(filtered);
+        }
 
-<div class="card">
-<h3>MTTR</h3>
-<p id="mttr">0h</p>
-</div>
+        function renderKPIs(data) {
+            document.getElementById('kpi-total').innerText = data.length;
+            const res = data.filter(i => i.Status === 'Concluído' || i.Status === 'Resolvido').length;
+            document.getElementById('kpi-concluidos').innerText = res;
+            document.getElementById('kpi-aberto').innerText = data.length - res;
+            document.getElementById('kpi-dominios').innerText = [...new Set(data.map(i => i['Campo personalizado (Domínio de TI - Atuação)']))].length;
+        }
 
-<div class="card">
-<h3>MTTA</h3>
-<p id="mtta">0h</p>
-</div>
+        function renderCharts(data) {
+            // Auxiliar para contagem
+            const countBy = (field) => {
+                const map = {};
+                data.forEach(i => { const v = i[field] || 'N/I'; map[v] = (map[v] || 0) + 1; });
+                return { keys: Object.keys(map), values: Object.values(map) };
+            };
 
-<div class="card">
-<h3>Pico de Chamados</h3>
-<p id="picoChamados">0</p>
-</div>
+            // Timeline Mensal
+            const months = {};
+            data.forEach(i => {
+                try {
+                    const parts = i.Criado.split(' ')[0].split('/');
+                    const key = parts[1] + '/' + parts[2];
+                    months[key] = (months[key] || 0) + 1;
+                } catch(e) {}
+            });
+            updateChart('chart-monthly-bars', 'area', Object.keys(months), Object.values(months), '#3274d9');
 
-</section>
+            // Domínios
+            const dData = countBy('Campo personalizado (Domínio de TI - Atuação)');
+            updateChart('chart-dominio-bars', 'bar', dData.keys, dData.values, '#a352cc', true);
 
+            // Prioridade
+            const pData = countBy('Prioridade');
+            updateChart('chart-prioridade-bars', 'bar', pData.keys, pData.values, '#e54919');
 
+            // Heatmap Semanal
+            const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            const weekMatrix = weekDays.map(day => ({ name: day, data: Array(24).fill(0).map((_, h) => ({x: h+'h', y: 0})) }));
+            data.forEach(i => {
+                try {
+                    const parts = i.Criado.split(' ');
+                    const dateP = parts[0].split('/');
+                    const timeP = parts[1].split(':');
+                    const d = new Date(dateP[2], dateP[1]-1, dateP[0], timeP[0]);
+                    weekMatrix[d.getDay()].data[d.getHours()].y++;
+                } catch(e) {}
+            });
+            renderHeatmap('chart-heatmap-week', weekMatrix, '#3274d9');
 
-<!-- GRÁFICOS PRINCIPAIS -->
+            // Heatmap Mensal
+            const monthMatrix = Array.from({length: 12}, (_, m) => ({ 
+                name: (m+1).toString().padStart(2, '0'), 
+                data: Array(31).fill(0).map((_, d) => ({x: (d+1).toString(), y: 0})) 
+            }));
+            data.forEach(i => {
+                try {
+                    const dateParts = i.Criado.split(' ')[0].split('/');
+                    const m = parseInt(dateParts[1]) - 1;
+                    const d = parseInt(dateParts[0]) - 1;
+                    if(monthMatrix[m]) monthMatrix[m].data[d].y++;
+                } catch(e) {}
+            });
+            renderHeatmap('chart-heatmap-month', monthMatrix.filter(m => m.data.some(x => x.y > 0)), '#56a64b');
 
-<section class="charts">
+            // Tipos
+            const tData = countBy('Tipo de item');
+            updateChart('chart-tipo-bars', 'bar', tData.keys, tData.values, '#f2cc0c');
+        }
 
-<div class="panel">
-<h3>Chamados por Status</h3>
-<canvas id="statusChart"></canvas>
-</div>
+        function updateChart(id, type, labels, values, color, horizontal = false) {
+            if(charts[id]) charts[id].destroy();
+            const options = {
+                ...commonOptions,
+                chart: { ...commonOptions.chart, type: type, height: 250 },
+                series: [{ name: 'Count', data: values }],
+                xaxis: { categories: labels, labels: { style: { colors: '#d8d9da' } } },
+                colors: [color],
+                plotOptions: { bar: { horizontal: horizontal, borderRadius: 2 } },
+                stroke: { curve: 'smooth', width: 2 }
+            };
+            charts[id] = new ApexCharts(document.getElementById(id), options);
+            charts[id].render();
+        }
 
-
-<div class="panel">
-<h3>Chamados por Prioridade</h3>
-<canvas id="prioridadeChart"></canvas>
-</div>
-
-
-<div class="panel">
-<h3>Ranking de Técnicos</h3>
-<canvas id="tecnicosChart"></canvas>
-</div>
-
-
-<div class="panel">
-<h3>Tendência de Incidentes</h3>
-<canvas id="mesChart"></canvas>
-</div>
-
-</section>
-
-
-
-<!-- GRÁFICOS OPERACIONAIS -->
-
-<section class="charts">
-
-<div class="panel">
-<h3>Aging de Backlog</h3>
-<canvas id="agingChart"></canvas>
-</div>
-
-
-<div class="panel">
-<h3>Chamados por Hora do Dia</h3>
-<canvas id="heatmapHora"></canvas>
-</div>
-
-</section>
-
-
-
-<!-- RODAPÉ -->
-
-<footer>
-
-<p>Dashboard de Gestão de TI • Grupo Conexão</p>
-
-</footer>
-
-
-<script src="app.js"></script>
-
+        function renderHeatmap(id, series, color) {
+            if(charts[id]) charts[id].destroy();
+            const options = {
+                ...commonOptions,
+                chart: { ...commonOptions.chart, type: 'heatmap', height: 250 },
+                series: series,
+                colors: [color],
+                xaxis: { labels: { style: { colors: '#d8d9da', fontSize: '9px' } } },
+                dataLabels: { enabled: false }
+            };
+            charts[id] = new ApexCharts(document.getElementById(id), options);
+            charts[id].render();
+        }
+    </script>
 </body>
 </html>
