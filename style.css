@@ -1,29 +1,88 @@
-.header{
-display:flex;
-justify-content:center;
-align-items:center;
-background:#020617;
-padding:20px;
+body{
+margin:0;
+font-family:Segoe UI;
+background:#0b0f19;
+color:white;
 }
 
-.logo-area{
+.topbar{
 display:flex;
 align-items:center;
 gap:20px;
+padding:15px 30px;
+background:#111827;
 }
 
 .logo{
-height:60px;
-filter:brightness(1.2);
+height:50px;
 }
 
-.title h1{
-margin:0;
-font-size:24px;
+.filters{
+display:flex;
+gap:10px;
+padding:20px;
+flex-wrap:wrap;
+background:#0f172a;
 }
 
-.title p{
-margin:0;
-font-size:14px;
-opacity:0.7;
+select,input,button{
+
+padding:10px;
+background:#1f2937;
+border:none;
+color:white;
+border-radius:6px;
+
+}
+
+.kpis{
+
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:20px;
+padding:20px;
+
+}
+
+.kpi{
+
+background:#111827;
+padding:20px;
+border-radius:10px;
+text-align:center;
+
+}
+
+.kpi p{
+
+font-size:28px;
+font-weight:bold;
+margin:10px 0;
+
+}
+
+.grid{
+
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(400px,1fr));
+gap:20px;
+padding:20px;
+
+}
+
+.panel{
+
+background:#111827;
+padding:20px;
+border-radius:10px;
+
+}
+
+.heatmaps{
+
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+padding:20px;
+
 }
