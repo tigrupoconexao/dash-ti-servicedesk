@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BI Helpdesk | Grafana Time Series</title>
+    <title>BI Helpdesk | Grupo Conexão</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
@@ -35,28 +35,19 @@
             border-radius: 2px;
             display: flex;
             flex-direction: column;
+            position: relative;
             overflow: hidden;
         }
 
         .panel-header {
             background: rgba(255, 255, 255, 0.03);
-            padding: 8px 12px;
+            padding: 6px 12px;
             font-size: 11px;
             font-weight: 700;
             color: var(--text-main);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             border-bottom: 1px solid var(--border-panel);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .panel-header::before {
-            content: "";
-            width: 2px;
-            height: 12px;
-            background: var(--blue);
         }
 
         .panel-content { padding: 12px; flex-grow: 1; }
@@ -70,7 +61,7 @@
             border: 1px solid var(--border-panel);
             color: var(--text-main);
             font-size: 11px;
-            padding: 5px 10px;
+            padding: 4px 8px;
             border-radius: 2px;
             outline: none;
         }
@@ -86,9 +77,9 @@
         <div class="max-w-[1800px] mx-auto flex justify-between items-center">
             <div class="flex items-center gap-4">
                 <div class="bg-white p-1 rounded-sm">
-                    <img src="logo.png" style="height:30px;" onerror="this.src='https://via.placeholder.com/100x30/FFFFFF/0d1b2a?text=LOGOMARCA'">
+                    <img src="logo.png" style="height:30px;" onerror="this.src='https://via.placeholder.com/100x30/FFFFFF/0d1b2a?text=LOGO'">
                 </div>
-                <div class="text-[14px] font-bold tracking-tight">TI GRUPO CONEXÃO / <span class="text-[#778da9]">HELPDESK ANALYTICS</span></div>
+                <div class="text-[14px] font-bold tracking-tight">TI GRUPO CONEXÃO / <span class="text-[#778da9]">HELPDESK BI</span></div>
             </div>
             <div class="text-[10px] font-mono text-right">
                 <span class="text-[#778da9]">SINCRONIZAÇÃO: </span>
@@ -104,7 +95,7 @@
             <select id="f-status" class="g-select" onchange="apply()"><option value="All">Status: Todos</option></select>
             <select id="f-type" class="g-select" onchange="apply()"><option value="All">Tipo: Todos</option></select>
             <select id="f-req" class="g-select" onchange="apply()"><option value="All">Solicitação: Todas</option></select>
-            <button onclick="reset()" class="g-select border-none bg-[#415a77] hover:bg-[#778da9] font-bold px-4 text-white transition-colors uppercase">Limpar</button>
+            <button onclick="reset()" class="g-select border-none bg-[#415a77] hover:bg-[#778da9] font-bold px-4 text-white">LIMPAR FILTROS</button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -116,7 +107,7 @@
             </div>
             <div class="grafana-panel stat-panel !border-l-[#56a64b]">
                 <div class="panel-content">
-                    <div class="stat-label">Concluídos / Resolvidos</div>
+                    <div class="stat-label">Resolvidos / Concluídos</div>
                     <div id="kpi-resolved" class="stat-value text-[#56a64b]">0</div>
                 </div>
             </div>
@@ -128,7 +119,7 @@
             </div>
             <div class="grafana-panel stat-panel !border-l-[#f29527]">
                 <div class="panel-content">
-                    <div class="stat-label">Eficiência</div>
+                    <div class="stat-label">Taxa de Eficiência</div>
                     <div id="kpi-rate" class="stat-value text-[#f29527]">0%</div>
                 </div>
             </div>
@@ -136,18 +127,18 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
             <div class="grafana-panel lg:col-span-8">
-                <div class="panel-header">Evolução Mensal de Chamados (Time Series)</div>
+                <div class="panel-header">Evolução Mensal de Chamados</div>
                 <div class="panel-content"><div id="chart-ev"></div></div>
             </div>
             <div class="grafana-panel lg:col-span-4">
-                <div class="panel-header">Prioridade</div>
+                <div class="panel-header">Distribuição por Prioridade</div>
                 <div class="panel-content"><div id="chart-prio"></div></div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <div class="grafana-panel">
-                <div class="panel-header">Top 10 Setores Solicitantes</div>
+                <div class="panel-header">Top 10 Setores</div>
                 <div class="panel-content"><div id="chart-sectors"></div></div>
             </div>
             <div class="grafana-panel">
@@ -158,17 +149,17 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <div class="grafana-panel">
-                <div class="panel-header">Heatmap Semanal</div>
+                <div class="panel-header">Heatmap Semanal (Concentração de Demanda)</div>
                 <div class="panel-content"><div id="chart-week"></div></div>
             </div>
             <div class="grafana-panel">
-                <div class="panel-header">Heatmap Mensal</div>
+                <div class="panel-header">Heatmap Mensal (Volume Diário)</div>
                 <div class="panel-content"><div id="chart-month"></div></div>
             </div>
         </div>
 
         <div class="grafana-panel">
-            <div class="panel-header">Matriz: Solicitação por Setor</div>
+            <div class="panel-header">Matriz: Tipo de Solicitação por Setor Solicitante</div>
             <div class="panel-content overflow-x-auto"><div id="chart-matrix"></div></div>
         </div>
     </div>
@@ -234,24 +225,13 @@
             document.getElementById('kpi-canceled').innerText = can;
             document.getElementById('kpi-rate').innerText = rate + "%";
 
-            // Evolução Estilo Grafana (Área Suave)
-            const months = {"01/26": "Jan", "02/26": "Fev", "03/26": "Mar"};
-            let ev = {"01/26":0, "02/26":0, "03/26":0};
+            // Evolução
+            const ev = {"01/26":0, "02/26":0, "03/26":0};
             data.forEach(d => { let p=parseDate(d[COL.CREATED]); if(p && ev.hasOwnProperty(p.key)) ev[p.key]++; });
-            
-            draw('chart-ev', {
-                series: [{ name: 'Abertos', data: Object.values(ev) }],
-                chart: { type: 'area', height: 280, sparkline: { enabled: false }, toolbar: { show: false } },
-                stroke: { curve: 'smooth', width: 2 },
-                fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.1 } },
-                colors: ['#778da9'],
-                xaxis: { categories: Object.keys(ev).map(k => months[k]), axisBorder: { show: false } },
-                yaxis: { show: true },
-                grid: { borderColor: '#1b263b', strokeDashArray: 4 }
-            });
+            draw('chart-ev', { series:[{name:'Chamados', data:Object.values(ev)}], chart:{type:'bar', height:250}, colors:['#415a77'], xaxis:{categories:['Janeiro/26','Fevereiro/26','Março/26']}, dataLabels:{enabled:true} });
 
             const prio = count(data, COL.PRIO);
-            draw('chart-prio', { series:prio.v, labels:prio.l, chart:{type:'donut', height:280}, stroke:{show:false}, colors:['#415a77','#56a64b','#f29527','#e02f44'], legend:{position:'bottom', labels:{colors:'#778da9'}} });
+            draw('chart-prio', { series:prio.v, labels:prio.l, chart:{type:'donut', height:250}, stroke:{show:false}, colors:['#415a77','#56a64b','#f29527','#e02f44'], legend:{position:'bottom', labels:{colors:'#e0e1dd'}} });
 
             const sec = count(data, COL.SECTOR, 10);
             draw('chart-sectors', bar(sec.v, sec.l, '#56a64b', true));
@@ -269,15 +249,17 @@
         }
 
         function bar(v, l, c, h) {
-            return { series:[{name:'Total', data:v}], chart:{type:'bar', height:250, toolbar:{show:false}}, colors:[c], plotOptions:{bar:{horizontal:h, borderRadius:2}}, xaxis:{categories:l}, grid:{borderColor:'#1b263b'} };
+            return { series:[{name:'Chamados', data:v}], chart:{type:'bar', height:250}, colors:[c], plotOptions:{bar:{horizontal:h, borderRadius:2, dataLabels:{position:'top'}}}, xaxis:{categories:l}, grid:{borderColor:'#415a77'}, dataLabels:{enabled:true, style:{fontSize:'9px'}} };
         }
 
         function renderHeatmaps(data) {
-            const hColors = {
+            // Escala de cores comum para evitar branco: Fundo escuro (#1b263b) para valor 0
+            const heatmapColors = {
                 ranges: [
-                    { from: 0, to: 0, color: '#1b263b' },
-                    { from: 1, to: 3, color: '#415a77' },
-                    { from: 4, to: 100, color: '#778da9' }
+                    { from: 0, to: 0, color: '#1b263b', name: 'vazio' },
+                    { from: 1, to: 2, color: '#415a77', name: 'baixo' },
+                    { from: 3, to: 5, color: '#778da9', name: 'médio' },
+                    { from: 6, to: 100, color: '#e0e1dd', name: 'alto' }
                 ]
             };
 
@@ -286,18 +268,18 @@
                 let p=parseDate(d[COL.CREATED]);
                 if(p) { let dObj=new Date(p.y,p.m-1,p.d); let idx=(dObj.getDay()+6)%7; if(wk[idx]) wk[idx].data[p.h].y++; }
             });
-            draw('chart-week', { series:wk.reverse(), chart:{type:'heatmap', height:250}, plotOptions:{heatmap:{colorScale:hColors}}, dataLabels:{enabled:false} });
+            draw('chart-week', { series:wk.reverse(), chart:{type:'heatmap', height:250}, plotOptions:{heatmap:{colorScale:heatmapColors}}, dataLabels:{enabled:false} });
 
             let mth = ["Jan","Fev","Mar"].map(m=>({name:m, data:Array(31).fill(0).map((_,i)=>({x:(i+1).toString(), y:0}))}));
             data.forEach(d => { let p=parseDate(d[COL.CREATED]); if(p && p.m<=3) mth[p.m-1].data[p.d-1].y++; });
-            draw('chart-month', { series:mth.reverse(), chart:{type:'heatmap', height:250}, plotOptions:{heatmap:{colorScale:hColors}}, dataLabels:{enabled:false} });
+            draw('chart-month', { series:mth.reverse(), chart:{type:'heatmap', height:200}, plotOptions:{heatmap:{colorScale:heatmapColors}}, dataLabels:{enabled:false} });
 
             const s = count(data, COL.SECTOR, 8).l; const r = count(data, COL.REQ, 10).l;
-            draw('chart-matrix', { series:r.map(req=>({name:req, data:s.map(sec=>({x:sec, y:data.filter(d=>d[COL.REQ]===req && d[COL.SECTOR]===sec).length}))})), chart:{type:'heatmap', height:400}, plotOptions:{heatmap:{colorScale:hColors}}, dataLabels:{enabled:true} });
+            draw('chart-matrix', { series:r.map(req=>({name:req, data:s.map(sec=>({x:sec, y:data.filter(d=>d[COL.REQ]===req && d[COL.SECTOR]===sec).length}))})), chart:{type:'heatmap', height:400}, plotOptions:{heatmap:{colorScale:heatmapColors}}, dataLabels:{enabled:true} });
         }
 
         function draw(id, opts) {
-            opts.chart.background = 'transparent'; opts.chart.foreColor = '#778da9';
+            opts.chart.background = 'transparent'; opts.chart.foreColor = '#778da9'; opts.chart.toolbar = {show:true};
             if(charts[id]) charts[id].updateOptions(opts);
             else { charts[id] = new ApexCharts(document.querySelector("#"+id), opts); charts[id].render(); }
         }
