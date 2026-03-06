@@ -13,7 +13,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0b0c0e; /* Fundo Grafana */
+            background-color: #0b0c0e;
             color: #d8d9da;
         }
         .grafana-card {
@@ -43,7 +43,7 @@
         <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b border-gray-800 pb-4">
             <div class="flex items-center gap-3">
                 <div class="bg-[#f05a28] p-1.5 rounded text-black font-black text-sm">G</div>
-                <h1 class="text-xl font-bold text-white tracking-tight">Jira IT Management - Grupo Conexão</h1>
+                <h1 class="text-xl font-bold text-white tracking-tight">Gestão de TI Jira - Grupo Conexão</h1>
             </div>
             
             <div class="flex flex-wrap items-center gap-3">
@@ -51,7 +51,7 @@
                 <select id="filter-dominio" class="filter-select"><option value="Todos">Domínio (Todos)</option></select>
                 <select id="filter-tipo" class="filter-select"><option value="Todos">Tipo (Todos)</option></select>
                 <div class="text-[10px] text-gray-500 uppercase tracking-widest ml-2 border-l border-gray-700 pl-4">
-                    Live Data
+                    Atualizado em: <span id="update-timestamp" class="text-blue-400">--/--/-- --:--</span>
                 </div>
             </div>
         </header>
@@ -77,12 +77,12 @@
 
         <div class="grid grid-cols-12 gap-4">
             <div class="col-span-12 lg:col-span-6 grafana-card p-4">
-                <h3 class="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Weekly Load Density</h3>
+                <h3 class="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Densidade de Carga Semanal</h3>
                 <div id="chart-heatmap-week"></div>
             </div>
 
             <div class="col-span-12 lg:col-span-6 grafana-card p-4">
-                <h3 class="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Monthly Activity Log</h3>
+                <h3 class="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Registro de Atividade Mensal</h3>
                 <div id="chart-heatmap-month"></div>
             </div>
 
@@ -117,7 +117,6 @@
         let rawData = [];
         let charts = {};
 
-        // Estilo Comum ApexCharts (Dark Mode Grafana)
         const commonOptions = {
             theme: { mode: 'dark' },
             chart: { background: 'transparent', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
@@ -126,14 +125,17 @@
             legend: { position: 'bottom', labels: { colors: '#d8d9da' } }
         };
 
-        // Carregar dados localmente via data.csv
         Papa.parse('data.csv', {
             download: true,
             header: true,
-            delimiter: ";", // SEPARADOR ORIGINAL DA SUA PLANILHA
+            delimiter: ";",
             skipEmptyLines: true,
             complete: function(results) {
                 rawData = results.data;
+                // Atualiza a data e hora da carga
+                const agora = new Date();
+                document.getElementById('update-timestamp').innerText = agora.toLocaleString('pt-BR');
+                
                 initFilters();
                 renderAll();
             }
@@ -163,14 +165,12 @@
                        (fTipo === 'Todos' || i['Tipo de item'] === fTipo);
             });
 
-            // KPIs
             document.getElementById('kpi-total').innerText = data.length;
             const solved = data.filter(i => i.Status === 'Concluído' || i.Status === 'Resolvido').length;
             document.getElementById('kpi-concluidos').innerText = solved;
             document.getElementById('kpi-aberto').innerText = data.length - solved;
             document.getElementById('kpi-dominios').innerText = [...new Set(data.map(i => i['Campo personalizado (Domínio de TI - Atuação)']))].length;
 
-            // Gráficos
             renderTimeline(data);
             renderHeatmaps(data);
             renderCategorical(data);
@@ -179,18 +179,15 @@
         function renderTimeline(data) {
             const counts = {};
             data.forEach(i => {
-                const m = i.Criado.split(' ')[0].substring(3, 10); // MM/YYYY
+                const m = i.Criado.split(' ')[0].substring(3, 10);
                 counts[m] = (counts[m] || 0) + 1;
             });
             drawChart('chart-monthly-bars', 'area', Object.keys(counts), Object.values(counts), '#3274d9');
         }
 
         function renderHeatmaps(data) {
-            // Semanal
             const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
             const weekMatrix = days.map(d => ({ name: d, data: Array(24).fill(0).map((_, h) => ({x: h+'h', y: 0})) }));
-            
-            // Mensal
             const monthMatrix = Array.from({length: 12}, (_, m) => ({ 
                 name: (m+1).toString().padStart(2, '0'), 
                 data: Array(31).fill(0).map((_, d) => ({x: (d+1).toString(), y: 0})) 
@@ -202,7 +199,6 @@
                     const dParts = p[0].split('/');
                     const tParts = p[1].split(':');
                     const dt = new Date(dParts[2], dParts[1]-1, dParts[0], tParts[0]);
-                    
                     weekMatrix[dt.getDay()].data[dt.getHours()].y++;
                     monthMatrix[dt.getMonth()].data[dt.getDate()-1].y++;
                 } catch(e) {}
@@ -218,16 +214,12 @@
                 data.forEach(i => { const v = i[key] || 'N/I'; m[v] = (m[v] || 0) + 1; });
                 return { k: Object.keys(m), v: Object.values(m) };
             };
-
             const prio = count('Prioridade');
             drawChart('chart-prioridade-bars', 'bar', prio.k, prio.v, '#e54919');
-
             const dom = count('Campo personalizado (Domínio de TI - Atuação)');
             drawChart('chart-dominio-bars', 'bar', dom.k, dom.v, '#a352cc', true);
-
             const tip = count('Tipo de item');
             drawChart('chart-tipo-bars', 'bar', tip.k, tip.v, '#f2cc0c');
-
             const sts = count('Status');
             drawChart('chart-status-total', 'bar', sts.k, sts.v, '#1f78c1');
         }
