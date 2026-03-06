@@ -1,42 +1,59 @@
-let rawData=[]
+let data = []
 
-Papa.parse("./data/issues.csv",{
+Papa.parse("./data/issues.csv", {
+  download: true,
+  header: true,
+  complete: function (results) {
 
-download:true,
-header:true,
+    data = results.data.filter(r => r.Criado)
 
-complete:function(results){
+    data.forEach(d => {
 
-rawData=results.data.filter(r=>r.Criado)
+      d.criado = new Date(d.Criado)
 
-prepareData()
+      if (d.Atualizado)
+        d.atualizado = new Date(d.Atualizado)
+
+    })
+
+    renderDashboard()
+
+  }
+})
+
+
+function renderDashboard() {
+
+  kpis()
+
+  statusChart()
+
+  prioridadeChart()
+
+  tecnicosChart()
+
+  tendenciaIncidentes()
+
+  heatmapHora()
+
+  backlogAging()
+
+  detectarPicos()
+
+  calcularMTTR()
+
+  calcularMTTA()
 
 }
 
-})
 
-function prepareData(){
 
-rawData.forEach(d=>{
+function kpis(){
 
-d.criado=new Date(d.Criado)
+let total=data.length
 
-if(d.Atualizado)
-d.atualizado=new Date(d.Atualizado)
-
-})
-
-renderDashboard()
-
-}
-
-function renderDashboard(){
-
-let total=rawData.length
-
-let resolvidos=rawData.filter(d=>
-d.Status==="Concluído" ||
-d.Status==="Resolvido"
+let resolvidos=data.filter(d=>
+d.Status=="Concluído" || d.Status=="Resolvido"
 )
 
 let backlog=total-resolvidos.length
@@ -44,71 +61,17 @@ let backlog=total-resolvidos.length
 document.getElementById("totalChamados").innerText=total
 document.getElementById("backlog").innerText=backlog
 
-calcularMTTR(resolvidos)
-
-calcularSLA(resolvidos)
-
-statusChart()
-
-prioridadeChart()
-
-mesChart()
-
-rankingTecnicos()
-
-heatmapSemanal()
-
-heatmapMensal()
-
 }
 
-function calcularMTTR(data){
 
-let horas=0
-
-data.forEach(d=>{
-
-if(d.atualizado){
-
-let diff=(d.atualizado-d.criado)/3600000
-
-horas+=diff
-
-}
-
-})
-
-let mttr=(horas/data.length).toFixed(1)
-
-document.getElementById("mttr").innerText=mttr+"h"
-
-}
-
-function calcularSLA(data){
-
-let dentroSLA=0
-
-data.forEach(d=>{
-
-let diff=(d.atualizado-d.criado)/3600000
-
-if(diff<=48) dentroSLA++
-
-})
-
-let sla=((dentroSLA/data.length)*100).toFixed(1)
-
-document.getElementById("sla").innerText=sla+"%"
-
-}
 
 function group(column){
 
 let map={}
 
-rawData.forEach(d=>{
+data.forEach(d=>{
 
-let k=d[column]||"N/A"
+let k=d[column] || "Não informado"
 
 map[k]=(map[k]||0)+1
 
@@ -118,104 +81,264 @@ return map
 
 }
 
-function barChart(canvas,data){
+
+
+function createChart(canvas,title,dataMap){
 
 new Chart(document.getElementById(canvas),{
 
-type:"bar",
+type:'bar',
 
 data:{
 
-labels:Object.keys(data),
+labels:Object.keys(dataMap),
 
 datasets:[{
 
-data:Object.values(data)
+label:title,
+
+data:Object.values(dataMap),
+
+backgroundColor:"#3b82f6"
 
 }]
 
 },
 
-options:{plugins:{legend:{display:false}}}
+options:{
+
+plugins:{
+legend:{display:true}
+},
+
+scales:{
+y:{beginAtZero:true}
+}
+
+}
 
 })
 
 }
+
+
 
 function statusChart(){
 
-barChart("statusChart",group("Status"))
+createChart(
+"statusChart",
+"Chamados por Status",
+group("Status")
+)
 
 }
+
+
 
 function prioridadeChart(){
 
-barChart("prioridadeChart",group("Prioridade"))
+createChart(
+"prioridadeChart",
+"Chamados por Prioridade",
+group("Prioridade")
+)
 
 }
 
-function rankingTecnicos(){
 
-barChart("tecnicosChart",group("Responsável"))
+
+function tecnicosChart(){
+
+createChart(
+"tecnicosChart",
+"Ranking Técnicos",
+group("Responsável")
+)
 
 }
 
-function mesChart(){
+
+
+function tendenciaIncidentes(){
 
 let map={}
 
-rawData.forEach(d=>{
+data.forEach(d=>{
 
-let m=d.criado.toISOString().slice(0,7)
+let mes=d.criado.toISOString().slice(0,7)
 
-map[m]=(map[m]||0)+1
-
-})
-
-barChart("mesChart",map)
-
-}
-
-function heatmapSemanal(){
-
-let matrix=[[],[],[],[],[]]
-
-rawData.forEach(d=>{
-
-let week=Math.ceil(d.criado.getDate()/7)-1
-
-let day=d.criado.getDay()
-
-matrix[week][day]=(matrix[week][day]||0)+1
+map[mes]=(map[mes]||0)+1
 
 })
 
-Plotly.newPlot("heatmapSemanal",[{
+new Chart(document.getElementById("mesChart"),{
 
-z:matrix,
-type:"heatmap"
+type:'line',
 
-}])
+data:{
+
+labels:Object.keys(map),
+
+datasets:[{
+
+label:"Tendência de Incidentes",
+
+data:Object.values(map),
+
+borderColor:"#22c55e",
+
+fill:false
+
+}]
 
 }
 
-function heatmapMensal(){
+})
+
+}
+
+
+
+function calcularMTTR(){
+
+let resolvidos=data.filter(d=>
+d.Status=="Resolvido" || d.Status=="Concluído"
+)
+
+let horas=0
+
+resolvidos.forEach(d=>{
+
+if(d.atualizado){
+
+horas+=(d.atualizado-d.criado)/3600000
+
+}
+
+})
+
+let mttr=(horas/resolvidos.length).toFixed(1)
+
+document.getElementById("mttr").innerText=mttr+"h"
+
+}
+
+
+
+function calcularMTTA(){
+
+let horas=0
+let count=0
+
+data.forEach(d=>{
+
+if(d.atualizado){
+
+horas+=(d.atualizado-d.criado)/3600000
+count++
+
+}
+
+})
+
+let mtta=(horas/count).toFixed(1)
+
+document.getElementById("mtta").innerText=mtta+"h"
+
+}
+
+
+
+function heatmapHora(){
+
+let horas=Array(24).fill(0)
+
+data.forEach(d=>{
+
+let h=d.criado.getHours()
+
+horas[h]++
+
+})
+
+new Chart(document.getElementById("heatmapHora"),{
+
+type:'bar',
+
+data:{
+
+labels:[...Array(24).keys()],
+
+datasets:[{
+
+label:"Chamados por hora",
+
+data:horas,
+
+backgroundColor:"#f59e0b"
+
+}]
+
+}
+
+})
+
+}
+
+
+
+function backlogAging(){
+
+let aging={
+
+"0-24h":0,
+"1-3 dias":0,
+"3-7 dias":0,
+"+7 dias":0
+
+}
+
+let agora=new Date()
+
+data.forEach(d=>{
+
+if(d.Status!="Resolvido" && d.Status!="Concluído"){
+
+let diff=(agora-d.criado)/86400000
+
+if(diff<1) aging["0-24h"]++
+else if(diff<3) aging["1-3 dias"]++
+else if(diff<7) aging["3-7 dias"]++
+else aging["+7 dias"]++
+
+}
+
+})
+
+createChart("agingChart","Aging Backlog",aging)
+
+}
+
+
+
+function detectarPicos(){
 
 let map={}
 
-rawData.forEach(d=>{
+data.forEach(d=>{
 
-let m=d.criado.getMonth()
+let dia=d.criado.toISOString().slice(0,10)
 
-map[m]=(map[m]||0)+1
+map[dia]=(map[dia]||0)+1
 
 })
 
-Plotly.newPlot("heatmapMensal",[{
+let valores=Object.values(map)
 
-z:[Object.values(map)],
-type:"heatmap"
+let media=valores.reduce((a,b)=>a+b)/valores.length
 
-}])
+let pico=Math.max(...valores)
+
+document.getElementById("picoChamados").innerText=pico
 
 }
