@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Gestão de TI | Grupo Conexão</title>
+    <title>Grafana TI | Grupo Conexão</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -22,16 +22,17 @@
             border-top: 2px solid #3274d9;
             border-radius: 2px;
         }
-        .filter-select {
+        .filter-select, .filter-date {
             background-color: #0b0c0e;
             border: 1px solid #2c3235;
             color: #d8d9da;
-            padding: 4px 12px;
+            padding: 4px 8px;
             font-size: 0.85rem;
             border-radius: 2px;
             outline: none;
+            color-scheme: dark; /* Faz o calendário do navegador ficar escuro */
         }
-        .filter-select:focus { border-color: #3274d9; }
+        .filter-select:focus, .filter-date:focus { border-color: #3274d9; }
         .stat-value { font-size: 2.2rem; font-weight: 700; line-height: 1; margin-top: 5px; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
@@ -40,18 +41,26 @@
 <body class="p-4 md:p-6">
 
     <div class="max-w-[1600px] mx-auto">
-        <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b border-gray-800 pb-4">
+        <header class="flex flex-col lg:row justify-between items-center mb-6 gap-4 border-b border-gray-800 pb-4">
             <div class="flex items-center gap-4">
-                <img src="logo.png" alt="Grupo Conexão" class="h-10 w-auto object-contain onerror="this.style.display='none'"> 
-                <h1 class="text-xl font-bold text-white tracking-tight border-l border-gray-700 pl-4">TI GRUPO CONEXÃO / <span class="text-[#778da9]">HELPDESK ANALYTICS</span></h1>
+                <img src="logo.png" alt="Grupo Conexão" class="h-10 w-auto object-contain" onerror="this.style.display='none'"> 
+                <h1 class="text-xl font-bold text-white tracking-tight border-l border-gray-700 pl-4">Gestão de TI Jira</h1>
             </div>
             
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <div class="flex items-center gap-2 bg-[#181b1f] p-1 px-2 rounded border border-gray-800">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase">Período:</span>
+                    <input type="date" id="date-from" class="filter-date">
+                    <span class="text-gray-600 text-xs">até</span>
+                    <input type="date" id="date-to" class="filter-date">
+                </div>
+                
                 <select id="filter-status" class="filter-select"><option value="Todos">Status (Todos)</option></select>
                 <select id="filter-dominio" class="filter-select"><option value="Todos">Domínio (Todos)</option></select>
                 <select id="filter-tipo" class="filter-select"><option value="Todos">Tipo (Todos)</option></select>
+                
                 <div class="text-[10px] text-gray-500 uppercase tracking-widest ml-2 border-l border-gray-700 pl-4">
-                    Atualizado em: <span id="update-timestamp" class="text-blue-400">--/--/-- --:--</span>
+                    Atualizado em: <span id="update-timestamp" class="text-blue-400">--:--</span>
                 </div>
             </div>
         </header>
@@ -80,32 +89,26 @@
                 <h3 class="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Densidade de Carga Semanal</h3>
                 <div id="chart-heatmap-week"></div>
             </div>
-
             <div class="col-span-12 lg:col-span-6 grafana-card p-4">
                 <h3 class="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Registro de Atividade Mensal</h3>
                 <div id="chart-heatmap-month"></div>
             </div>
-
             <div class="col-span-12 md:col-span-8 grafana-card p-4">
                 <h3 class="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Quantitativo Criado Mês a Mês</h3>
                 <div id="chart-monthly-bars"></div>
             </div>
-
             <div class="col-span-12 md:col-span-4 grafana-card p-4">
                 <h3 class="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Distribuição de Prioridade</h3>
                 <div id="chart-prioridade-bars"></div>
             </div>
-
             <div class="col-span-12 md:col-span-6 grafana-card p-4">
                 <h3 class="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Domínio de TI - Atuação</h3>
                 <div id="chart-dominio-bars"></div>
             </div>
-
             <div class="col-span-12 md:col-span-6 grafana-card p-4">
                 <h3 class="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Tipo de Solicitação</h3>
                 <div id="chart-tipo-bars"></div>
             </div>
-
             <div class="col-span-12 grafana-card p-4">
                 <h3 class="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Contagem Total por Status</h3>
                 <div id="chart-status-total"></div>
@@ -148,20 +151,50 @@
             fill('filter-status', getUnique('Status'));
             fill('filter-dominio', getUnique('Campo personalizado (Domínio de TI - Atuação)'));
             fill('filter-tipo', getUnique('Tipo de item'));
-            document.querySelectorAll('select').forEach(s => s.addEventListener('change', renderAll));
+
+            // Eventos de alteração para todos os inputs
+            document.querySelectorAll('select, input[type="date"]').forEach(el => {
+                el.addEventListener('change', renderAll);
+            });
+        }
+
+        // Função para converter string DD/MM/YYYY HH:MM para objeto Date
+        function parseJiraDate(dateStr) {
+            if (!dateStr) return null;
+            const [datePart, timePart] = dateStr.split(' ');
+            const [day, month, year] = datePart.split('/');
+            return new Date(year, month - 1, day);
         }
 
         function renderAll() {
             const fStatus = document.getElementById('filter-status').value;
             const fDom = document.getElementById('filter-dominio').value;
             const fTipo = document.getElementById('filter-tipo').value;
+            const fFrom = document.getElementById('date-from').value; // Formato YYYY-MM-DD
+            const fTo = document.getElementById('date-to').value;
 
             const data = rawData.filter(i => {
-                return (fStatus === 'Todos' || i.Status === fStatus) &&
+                const itemDate = parseJiraDate(i.Criado);
+                
+                // Filtro de Data
+                let matchDate = true;
+                if (fFrom) {
+                    const fromDate = new Date(fFrom);
+                    if (itemDate < fromDate) matchDate = false;
+                }
+                if (fTo) {
+                    const toDate = new Date(fTo);
+                    toDate.setHours(23, 59, 59); // Final do dia
+                    if (itemDate > toDate) matchDate = false;
+                }
+
+                return matchDate &&
+                       (fStatus === 'Todos' || i.Status === fStatus) &&
                        (fDom === 'Todos' || i['Campo personalizado (Domínio de TI - Atuação)'] === fDom) &&
                        (fTipo === 'Todos' || i['Tipo de item'] === fTipo);
             });
 
+            // Atualização de KPIs e Gráficos
             document.getElementById('kpi-total').innerText = data.length;
             const solved = data.filter(i => i.Status === 'Concluído' || i.Status === 'Resolvido').length;
             document.getElementById('kpi-concluidos').innerText = solved;
@@ -173,11 +206,14 @@
             renderCategorical(data);
         }
 
+        // Funções de Renderização (Mantidas as correções visuais do Heatmap)
         function renderTimeline(data) {
             const counts = {};
             data.forEach(i => {
-                const m = i.Criado.split(' ')[0].substring(3, 10);
-                counts[m] = (counts[m] || 0) + 1;
+                try {
+                    const m = i.Criado.split(' ')[0].substring(3, 10);
+                    counts[m] = (counts[m] || 0) + 1;
+                } catch(e) {}
             });
             drawChart('chart-monthly-bars', 'area', Object.keys(counts), Object.values(counts), '#3274d9');
         }
@@ -211,14 +247,10 @@
                 data.forEach(i => { const v = i[key] || 'N/I'; m[v] = (m[v] || 0) + 1; });
                 return { k: Object.keys(m), v: Object.values(m) };
             };
-            const prio = count('Prioridade');
-            drawChart('chart-prioridade-bars', 'bar', prio.k, prio.v, '#e54919');
-            const dom = count('Campo personalizado (Domínio de TI - Atuação)');
-            drawChart('chart-dominio-bars', 'bar', dom.k, dom.v, '#a352cc', true);
-            const tip = count('Tipo de item');
-            drawChart('chart-tipo-bars', 'bar', tip.k, tip.v, '#f2cc0c');
-            const sts = count('Status');
-            drawChart('chart-status-total', 'bar', sts.k, sts.v, '#1f78c1');
+            drawChart('chart-prioridade-bars', 'bar', count('Prioridade').k, count('Prioridade').v, '#e54919');
+            drawChart('chart-dominio-bars', 'bar', count('Campo personalizado (Domínio de TI - Atuação)').k, count('Campo personalizado (Domínio de TI - Atuação)').v, '#a352cc', true);
+            drawChart('chart-tipo-bars', 'bar', count('Tipo de item').k, count('Tipo de item').v, '#f2cc0c');
+            drawChart('chart-status-total', 'bar', count('Status').k, count('Status').v, '#1f78c1');
         }
 
         function drawChart(id, type, labels, values, color, horiz = false) {
@@ -238,32 +270,18 @@
 
         function drawHeatmap(id, series, baseColor) {
             if(charts[id]) charts[id].destroy();
-            const azulRanges = [
+            const ranges = [
                 { from: 0, to: 0, color: '#1a1c22' },
-                { from: 1, to: 2, color: '#1d3d6e' }, 
-                { from: 3, to: 5, color: '#3274d9' },
-                { from: 6, to: 10, color: '#5794f2' },
-                { from: 11, to: 100, color: '#a6c8ff' }
-            ];
-            const verdeRanges = [
-                { from: 0, to: 0, color: '#1a1c22' },
-                { from: 1, to: 2, color: '#1b3d20' }, 
-                { from: 3, to: 5, color: '#56a64b' },
-                { from: 6, to: 10, color: '#73bf69' },
-                { from: 11, to: 100, color: '#c8f2c2' }
+                { from: 1, to: 2, color: id === 'chart-heatmap-month' ? '#1b3d20' : '#1d3d6e' }, 
+                { from: 3, to: 5, color: id === 'chart-heatmap-month' ? '#56a64b' : '#3274d9' },
+                { from: 6, to: 10, color: id === 'chart-heatmap-month' ? '#73bf69' : '#5794f2' },
+                { from: 11, to: 100, color: id === 'chart-heatmap-month' ? '#c8f2c2' : '#a6c8ff' }
             ];
             const opts = {
                 ...commonOptions,
                 chart: { ...commonOptions.chart, type: 'heatmap', height: 280 },
                 series: series,
-                plotOptions: {
-                    heatmap: {
-                        shadeIntensity: 0.5,
-                        colorScale: {
-                            ranges: id === 'chart-heatmap-month' ? verdeRanges : azulRanges
-                        }
-                    }
-                },
+                plotOptions: { heatmap: { shadeIntensity: 0.5, colorScale: { ranges } } },
                 xaxis: { labels: { style: { fontSize: '9px', colors: '#d8d9da' } } }
             };
             charts[id] = new ApexCharts(document.getElementById(id), opts);
