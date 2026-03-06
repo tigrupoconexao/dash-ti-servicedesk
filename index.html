@@ -125,6 +125,7 @@
             legend: { position: 'bottom', labels: { colors: '#d8d9da' } }
         };
 
+        // Carregar dados localmente via data.csv
         Papa.parse('data.csv', {
             download: true,
             header: true,
@@ -132,7 +133,8 @@
             skipEmptyLines: true,
             complete: function(results) {
                 rawData = results.data;
-                // Atualiza a data e hora da carga
+                
+                // Atualiza a data e hora da carga dos dados
                 const agora = new Date();
                 document.getElementById('update-timestamp').innerText = agora.toLocaleString('pt-BR');
                 
@@ -199,6 +201,7 @@
                     const dParts = p[0].split('/');
                     const tParts = p[1].split(':');
                     const dt = new Date(dParts[2], dParts[1]-1, dParts[0], tParts[0]);
+                    
                     weekMatrix[dt.getDay()].data[dt.getHours()].y++;
                     monthMatrix[dt.getMonth()].data[dt.getDate()-1].y++;
                 } catch(e) {}
@@ -214,12 +217,16 @@
                 data.forEach(i => { const v = i[key] || 'N/I'; m[v] = (m[v] || 0) + 1; });
                 return { k: Object.keys(m), v: Object.values(m) };
             };
+
             const prio = count('Prioridade');
             drawChart('chart-prioridade-bars', 'bar', prio.k, prio.v, '#e54919');
+
             const dom = count('Campo personalizado (Domínio de TI - Atuação)');
             drawChart('chart-dominio-bars', 'bar', dom.k, dom.v, '#a352cc', true);
+
             const tip = count('Tipo de item');
             drawChart('chart-tipo-bars', 'bar', tip.k, tip.v, '#f2cc0c');
+
             const sts = count('Status');
             drawChart('chart-status-total', 'bar', sts.k, sts.v, '#1f78c1');
         }
@@ -239,14 +246,39 @@
             charts[id].render();
         }
 
-        function drawHeatmap(id, series, color) {
+        function drawHeatmap(id, series, baseColor) {
             if(charts[id]) charts[id].destroy();
+            
+            // Definição de escala de cores para garantir visibilidade
+            const azulRanges = [
+                { from: 0, to: 0, color: '#1a1c22' },
+                { from: 1, to: 2, color: '#1d3d6e' }, 
+                { from: 3, to: 5, color: '#3274d9' },
+                { from: 6, to: 10, color: '#5794f2' },
+                { from: 11, to: 100, color: '#a6c8ff' }
+            ];
+
+            const verdeRanges = [
+                { from: 0, to: 0, color: '#1a1c22' },
+                { from: 1, to: 2, color: '#1b3d20' }, 
+                { from: 3, to: 5, color: '#56a64b' },
+                { from: 6, to: 10, color: '#73bf69' },
+                { from: 11, to: 100, color: '#c8f2c2' }
+            ];
+
             const opts = {
                 ...commonOptions,
                 chart: { ...commonOptions.chart, type: 'heatmap', height: 280 },
                 series: series,
-                colors: [color],
-                xaxis: { labels: { style: { fontSize: '9px' } } }
+                plotOptions: {
+                    heatmap: {
+                        shadeIntensity: 0.5,
+                        colorScale: {
+                            ranges: id === 'chart-heatmap-month' ? verdeRanges : azulRanges
+                        }
+                    }
+                },
+                xaxis: { labels: { style: { fontSize: '9px', colors: '#d8d9da' } } }
             };
             charts[id] = new ApexCharts(document.getElementById(id), opts);
             charts[id].render();
