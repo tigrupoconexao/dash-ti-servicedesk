@@ -41,9 +41,9 @@
 
     <div class="max-w-[1600px] mx-auto">
         <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b border-gray-800 pb-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-[#f05a28] p-1.5 rounded text-black font-black text-sm">G</div>
-                <h1 class="text-xl font-bold text-white tracking-tight">Gestão de TI Jira - Grupo Conexão</h1>
+            <div class="flex items-center gap-4">
+                <img src="logo.png" alt="Grupo Conexão" class="h-10 w-auto object-contain onerror="this.style.display='none'"> 
+                <h1 class="text-xl font-bold text-white tracking-tight border-l border-gray-700 pl-4">Gestão de TI Jira</h1>
             </div>
             
             <div class="flex flex-wrap items-center gap-3">
@@ -125,7 +125,6 @@
             legend: { position: 'bottom', labels: { colors: '#d8d9da' } }
         };
 
-        // Carregar dados localmente via data.csv
         Papa.parse('data.csv', {
             download: true,
             header: true,
@@ -133,11 +132,8 @@
             skipEmptyLines: true,
             complete: function(results) {
                 rawData = results.data;
-                
-                // Atualiza a data e hora da carga dos dados
                 const agora = new Date();
                 document.getElementById('update-timestamp').innerText = agora.toLocaleString('pt-BR');
-                
                 initFilters();
                 renderAll();
             }
@@ -152,7 +148,6 @@
             fill('filter-status', getUnique('Status'));
             fill('filter-dominio', getUnique('Campo personalizado (Domínio de TI - Atuação)'));
             fill('filter-tipo', getUnique('Tipo de item'));
-
             document.querySelectorAll('select').forEach(s => s.addEventListener('change', renderAll));
         }
 
@@ -201,7 +196,6 @@
                     const dParts = p[0].split('/');
                     const tParts = p[1].split(':');
                     const dt = new Date(dParts[2], dParts[1]-1, dParts[0], tParts[0]);
-                    
                     weekMatrix[dt.getDay()].data[dt.getHours()].y++;
                     monthMatrix[dt.getMonth()].data[dt.getDate()-1].y++;
                 } catch(e) {}
@@ -217,16 +211,12 @@
                 data.forEach(i => { const v = i[key] || 'N/I'; m[v] = (m[v] || 0) + 1; });
                 return { k: Object.keys(m), v: Object.values(m) };
             };
-
             const prio = count('Prioridade');
             drawChart('chart-prioridade-bars', 'bar', prio.k, prio.v, '#e54919');
-
             const dom = count('Campo personalizado (Domínio de TI - Atuação)');
             drawChart('chart-dominio-bars', 'bar', dom.k, dom.v, '#a352cc', true);
-
             const tip = count('Tipo de item');
             drawChart('chart-tipo-bars', 'bar', tip.k, tip.v, '#f2cc0c');
-
             const sts = count('Status');
             drawChart('chart-status-total', 'bar', sts.k, sts.v, '#1f78c1');
         }
@@ -248,8 +238,6 @@
 
         function drawHeatmap(id, series, baseColor) {
             if(charts[id]) charts[id].destroy();
-            
-            // Definição de escala de cores para garantir visibilidade
             const azulRanges = [
                 { from: 0, to: 0, color: '#1a1c22' },
                 { from: 1, to: 2, color: '#1d3d6e' }, 
@@ -257,7 +245,6 @@
                 { from: 6, to: 10, color: '#5794f2' },
                 { from: 11, to: 100, color: '#a6c8ff' }
             ];
-
             const verdeRanges = [
                 { from: 0, to: 0, color: '#1a1c22' },
                 { from: 1, to: 2, color: '#1b3d20' }, 
@@ -265,7 +252,6 @@
                 { from: 6, to: 10, color: '#73bf69' },
                 { from: 11, to: 100, color: '#c8f2c2' }
             ];
-
             const opts = {
                 ...commonOptions,
                 chart: { ...commonOptions.chart, type: 'heatmap', height: 280 },
