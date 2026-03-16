@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão de TI | Grupo Conexão</title>
+    <title>Grafana TI | Grupo Conexão</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -30,7 +30,7 @@
             font-size: 0.85rem;
             border-radius: 2px;
             outline: none;
-            color-scheme: dark; /* Faz o calendário do navegador ficar escuro */
+            color-scheme: dark;
         }
         .filter-select:focus, .filter-date:focus { border-color: #3274d9; }
         .stat-value { font-size: 2.2rem; font-weight: 700; line-height: 1; margin-top: 5px; }
@@ -41,7 +41,7 @@
 <body class="p-4 md:p-6">
 
     <div class="max-w-[1600px] mx-auto">
-        <header class="flex flex-col lg:row justify-between items-center mb-6 gap-4 border-b border-gray-800 pb-4">
+        <header class="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4 border-b border-gray-800 pb-4">
             <div class="flex items-center gap-4">
                 <img src="logo.png" alt="Grupo Conexão" class="h-10 w-auto object-contain" onerror="this.style.display='none'"> 
                 <h1 class="text-xl font-bold text-white tracking-tight border-l border-gray-700 pl-4">Gestão de TI Jira</h1>
@@ -65,7 +65,7 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
             <div class="grafana-card p-4" style="border-top-color: #3274d9;">
                 <p class="text-[10px] font-bold text-blue-400 uppercase">Total de Chamados</p>
                 <div id="kpi-total" class="stat-value text-white">0</div>
@@ -77,6 +77,10 @@
             <div class="grafana-card p-4" style="border-top-color: #f2cc0c;">
                 <p class="text-[10px] font-bold text-yellow-400 uppercase">Em Aberto</p>
                 <div id="kpi-aberto" class="stat-value text-[#f2cc0c]">0</div>
+            </div>
+            <div class="grafana-card p-4" style="border-top-color: #00d4ff;">
+                <p class="text-[10px] font-bold text-[#00d4ff] uppercase">Issues Atualizadas</p>
+                <div id="kpi-atualizados" class="stat-value text-[#00d4ff]">0</div>
             </div>
             <div class="grafana-card p-4" style="border-top-color: #a352cc;">
                 <p class="text-[10px] font-bold text-purple-400 uppercase">Domínios Ativos</p>
@@ -152,13 +156,11 @@
             fill('filter-dominio', getUnique('Campo personalizado (Domínio de TI - Atuação)'));
             fill('filter-tipo', getUnique('Tipo de item'));
 
-            // Eventos de alteração para todos os inputs
             document.querySelectorAll('select, input[type="date"]').forEach(el => {
                 el.addEventListener('change', renderAll);
             });
         }
 
-        // Função para converter string DD/MM/YYYY HH:MM para objeto Date
         function parseJiraDate(dateStr) {
             if (!dateStr) return null;
             const [datePart, timePart] = dateStr.split(' ');
@@ -170,13 +172,12 @@
             const fStatus = document.getElementById('filter-status').value;
             const fDom = document.getElementById('filter-dominio').value;
             const fTipo = document.getElementById('filter-tipo').value;
-            const fFrom = document.getElementById('date-from').value; // Formato YYYY-MM-DD
+            const fFrom = document.getElementById('date-from').value;
             const fTo = document.getElementById('date-to').value;
 
+            // Filtragem principal baseada na data de CRIAÇÃO
             const data = rawData.filter(i => {
                 const itemDate = parseJiraDate(i.Criado);
-                
-                // Filtro de Data
                 let matchDate = true;
                 if (fFrom) {
                     const fromDate = new Date(fFrom);
@@ -184,21 +185,41 @@
                 }
                 if (fTo) {
                     const toDate = new Date(fTo);
-                    toDate.setHours(23, 59, 59); // Final do dia
+                    toDate.setHours(23, 59, 59);
                     if (itemDate > toDate) matchDate = false;
                 }
-
                 return matchDate &&
                        (fStatus === 'Todos' || i.Status === fStatus) &&
                        (fDom === 'Todos' || i['Campo personalizado (Domínio de TI - Atuação)'] === fDom) &&
                        (fTipo === 'Todos' || i['Tipo de item'] === fTipo);
             });
 
-            // Atualização de KPIs e Gráficos
+            // Contagem de Issues ATUALIZADAS (dentro do período selecionado)
+            const updatedCount = rawData.filter(i => {
+                const updateDate = parseJiraDate(i['Atualizado(a)']);
+                let matchUpdateDate = true;
+                if (fFrom) {
+                    const fromDate = new Date(fFrom);
+                    if (updateDate < fromDate) matchUpdateDate = false;
+                }
+                if (fTo) {
+                    const toDate = new Date(fTo);
+                    toDate.setHours(23, 59, 59);
+                    if (updateDate > toDate) matchUpdateDate = false;
+                }
+                // Aplica também os filtros laterais
+                return matchUpdateDate &&
+                       (fStatus === 'Todos' || i.Status === fStatus) &&
+                       (fDom === 'Todos' || i['Campo personalizado (Domínio de TI - Atuação)'] === fDom) &&
+                       (fTipo === 'Todos' || i['Tipo de item'] === fTipo);
+            }).length;
+
+            // Atualização de KPIs
             document.getElementById('kpi-total').innerText = data.length;
             const solved = data.filter(i => i.Status === 'Concluído' || i.Status === 'Resolvido').length;
             document.getElementById('kpi-concluidos').innerText = solved;
             document.getElementById('kpi-aberto').innerText = data.length - solved;
+            document.getElementById('kpi-atualizados').innerText = updatedCount;
             document.getElementById('kpi-dominios').innerText = [...new Set(data.map(i => i['Campo personalizado (Domínio de TI - Atuação)']))].length;
 
             renderTimeline(data);
@@ -206,7 +227,6 @@
             renderCategorical(data);
         }
 
-        // Funções de Renderização (Mantidas as correções visuais do Heatmap)
         function renderTimeline(data) {
             const counts = {};
             data.forEach(i => {
