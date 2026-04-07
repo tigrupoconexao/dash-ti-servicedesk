@@ -33,7 +33,7 @@
             color-scheme: dark;
         }
         .filter-select:focus, .filter-date:focus { border-color: #3274d9; }
-        .stat-value { font-size: 2.2rem; font-weight: 700; line-height: 1; margin-top: 5px; }
+        .stat-value { font-size: 2rem; font-weight: 700; line-height: 1; margin-top: 5px; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
@@ -65,25 +65,29 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
             <div class="grafana-card p-4" style="border-top-color: #3274d9;">
                 <p class="text-[10px] font-bold text-blue-400 uppercase">Total de Chamados</p>
                 <div id="kpi-total" class="stat-value text-white">0</div>
             </div>
             <div class="grafana-card p-4" style="border-top-color: #56a64b;">
-                <p class="text-[10px] font-bold text-green-400 uppercase">Concluídos / Resolvidos</p>
+                <p class="text-[10px] font-bold text-green-400 uppercase">Concluídos</p>
                 <div id="kpi-concluidos" class="stat-value text-[#56a64b]">0</div>
             </div>
             <div class="grafana-card p-4" style="border-top-color: #f2cc0c;">
-                <p class="text-[10px] font-bold text-yellow-400 uppercase">Em Aberto</p>
-                <div id="kpi-aberto" class="stat-value text-[#f2cc0c]">0</div>
+                <p class="text-[10px] font-bold text-yellow-400 uppercase">Em Andamento</p>
+                <div id="kpi-andamento" class="stat-value text-[#f2cc0c]">0</div>
+            </div>
+            <div class="grafana-card p-4" style="border-top-color: #e54919;">
+                <p class="text-[10px] font-bold text-orange-400 uppercase">Tarefas Pendentes</p>
+                <div id="kpi-pendentes" class="stat-value text-[#e54919]">0</div>
             </div>
             <div class="grafana-card p-4" style="border-top-color: #00d4ff;">
                 <p class="text-[10px] font-bold text-[#00d4ff] uppercase">Issues Atualizadas</p>
                 <div id="kpi-atualizados" class="stat-value text-[#00d4ff]">0</div>
             </div>
             <div class="grafana-card p-4" style="border-top-color: #a352cc;">
-                <p class="text-[10px] font-bold text-purple-400 uppercase">Domínios Ativos</p>
+                <p class="text-[10px] font-bold text-purple-400 uppercase">Domínios TI</p>
                 <div id="kpi-dominios" class="stat-value text-[#a352cc]">0</div>
             </div>
         </div>
@@ -175,7 +179,6 @@
             const fFrom = document.getElementById('date-from').value;
             const fTo = document.getElementById('date-to').value;
 
-            // Filtragem principal baseada na data de CRIAÇÃO
             const data = rawData.filter(i => {
                 const itemDate = parseJiraDate(i.Criado);
                 let matchDate = true;
@@ -194,7 +197,14 @@
                        (fTipo === 'Todos' || i['Tipo de item'] === fTipo);
             });
 
-            // Contagem de Issues ATUALIZADAS (dentro do período selecionado)
+            // LÓGICA DE STATUS
+            const concluidos = data.filter(i => ['Concluído', 'Resolvido'].includes(i.Status)).length;
+            const pendentes = data.filter(i => i.Status === 'Tarefas pendentes').length;
+            // "Em Andamento" = Não concluído, Não pendente e Não cancelado
+            const emAndamento = data.filter(i => 
+                !['Concluído', 'Resolvido', 'Cancelado', 'Tarefas pendentes'].includes(i.Status)
+            ).length;
+
             const updatedCount = rawData.filter(i => {
                 const updateDate = parseJiraDate(i['Atualizado(a)']);
                 let matchUpdateDate = true;
@@ -207,7 +217,6 @@
                     toDate.setHours(23, 59, 59);
                     if (updateDate > toDate) matchUpdateDate = false;
                 }
-                // Aplica também os filtros laterais
                 return matchUpdateDate &&
                        (fStatus === 'Todos' || i.Status === fStatus) &&
                        (fDom === 'Todos' || i['Campo personalizado (Domínio de TI - Atuação)'] === fDom) &&
@@ -216,9 +225,9 @@
 
             // Atualização de KPIs
             document.getElementById('kpi-total').innerText = data.length;
-            const solved = data.filter(i => i.Status === 'Concluído' || i.Status === 'Resolvido').length;
-            document.getElementById('kpi-concluidos').innerText = solved;
-            document.getElementById('kpi-aberto').innerText = data.length - solved;
+            document.getElementById('kpi-concluidos').innerText = concluidos;
+            document.getElementById('kpi-andamento').innerText = emAndamento;
+            document.getElementById('kpi-pendentes').innerText = pendentes;
             document.getElementById('kpi-atualizados').innerText = updatedCount;
             document.getElementById('kpi-dominios').innerText = [...new Set(data.map(i => i['Campo personalizado (Domínio de TI - Atuação)']))].length;
 
