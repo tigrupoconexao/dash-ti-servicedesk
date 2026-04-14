@@ -66,7 +66,7 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
             <div class="grafana-card p-4" style="border-top-color: #3274d9;">
                 <p class="prio-label text-blue-400">Total Chamados</p>
                 <div id="kpi-total" class="stat-value text-white">0</div>
@@ -93,22 +93,31 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="grafana-card p-4" style="border-top-color: #c4162a;">
-                <p class="prio-label text-[#c4162a]">Prioridade Crítica</p>
-                <div id="kpi-prio-critica" class="stat-value text-[#c4162a]">0</div>
+        <h2 class="text-xs font-bold text-gray-500 uppercase mb-3 tracking-widest">Dados por prioridade dos itens</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+            <div class="grafana-card p-4" style="border-top-color: #e01e5a;">
+                <p class="prio-label text-[#e01e5a]">Crítico</p>
+                <div id="kpi-prio-critico" class="stat-value text-[#e01e5a]">0</div>
             </div>
             <div class="grafana-card p-4" style="border-top-color: #e54919;">
-                <p class="prio-label text-[#e54919]">Prioridade Alta</p>
-                <div id="kpi-prio-alta" class="stat-value text-[#e54919]">0</div>
+                <p class="prio-label text-[#e54919]">Muito Alto</p>
+                <div id="kpi-prio-muito-alto" class="stat-value text-[#e54919]">0</div>
+            </div>
+            <div class="grafana-card p-4" style="border-top-color: #ff780a;">
+                <p class="prio-label text-[#ff780a]">Alto</p>
+                <div id="kpi-prio-alto" class="stat-value text-[#ff780a]">0</div>
             </div>
             <div class="grafana-card p-4" style="border-top-color: #f2cc0c;">
-                <p class="prio-label text-[#f2cc0c]">Prioridade Média</p>
-                <div id="kpi-prio-media" class="stat-value text-[#f2cc0c]">0</div>
+                <p class="prio-label text-[#f2cc0c]">Médio</p>
+                <div id="kpi-prio-medio" class="stat-value text-[#f2cc0c]">0</div>
             </div>
             <div class="grafana-card p-4" style="border-top-color: #56a64b;">
-                <p class="prio-label text-[#56a64b]">Prioridade Baixa</p>
-                <div id="kpi-prio-baixa" class="stat-value text-[#56a64b]">0</div>
+                <p class="prio-label text-[#56a64b]">Baixo</p>
+                <div id="kpi-prio-baixo" class="stat-value text-[#56a64b]">0</div>
+            </div>
+            <div class="grafana-card p-4" style="border-top-color: #3274d9;">
+                <p class="prio-label text-[#3274d9]">Muito Baixo</p>
+                <div id="kpi-prio-muito-baixo" class="stat-value text-[#3274d9]">0</div>
             </div>
         </div>
 
@@ -222,12 +231,14 @@
             const pendentes = data.filter(i => i.Status === 'Tarefas pendentes').length;
             const emAndamento = data.filter(i => !['Concluído', 'Resolvido', 'Cancelado', 'Tarefas pendentes'].includes(i.Status)).length;
 
-            // Lógica de Prioridades
+            // Lógica de Prioridades - Strings exatas conforme o CSV
             const getPrio = (p) => data.filter(i => i.Prioridade === p).length;
-            document.getElementById('kpi-prio-critica').innerText = getPrio('Crítica');
-            document.getElementById('kpi-prio-alta').innerText = getPrio('Alta');
-            document.getElementById('kpi-prio-media').innerText = getPrio('Médio'); // Nome exato na planilha
-            document.getElementById('kpi-prio-baixa').innerText = getPrio('Baixa');
+            document.getElementById('kpi-prio-critico').innerText = getPrio('Crítico');
+            document.getElementById('kpi-prio-muito-alto').innerText = getPrio('Muito alto');
+            document.getElementById('kpi-prio-alto').innerText = getPrio('Alto');
+            document.getElementById('kpi-prio-medio').innerText = getPrio('Médio');
+            document.getElementById('kpi-prio-baixo').innerText = getPrio('Baixo');
+            document.getElementById('kpi-prio-muito-baixo').innerText = getPrio('Muito baixo');
 
             const updatedCount = rawData.filter(i => {
                 const updateDate = parseJiraDate(i['Atualizado(a)']);
